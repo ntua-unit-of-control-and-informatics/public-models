@@ -5,7 +5,7 @@ This repository contains the code that is relevant to the training of the Jaqpot
 
 Run in the terminal the command:
 
-python3 src/<filename>.py -r <run_as>
+python3 src/filename.py -r <run_as>
 
 The run_as must be one of the following:
  - single (to train the model a single time)
