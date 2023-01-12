@@ -7,7 +7,7 @@ from jaqpotpy import Jaqpot
 from tdc.benchmark_group import admet_group
 from sklearn.metrics import mean_absolute_error
 from scipy.stats import spearmanr
-from src.helpers import get_dataset, cross_train
+from src.helpers import get_dataset, cross_train_sklearn
 from sklearn.svm import SVR
 import argparse
 import json
@@ -68,7 +68,7 @@ elif args.run_as in ['cross', 'deploy']:
     model = MolecularSKLearn(dummy_train, doa=None, model=svm, eval=val)
 
     # Cross Validate and check robustness
-    evaluation = cross_train(group, model, name, test)
+    evaluation = cross_train_sklearn(group, model, name, test)
     print('\n\nEvaluation of the model:', evaluation)
 
     # Upload on Jaqpot

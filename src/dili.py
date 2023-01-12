@@ -5,7 +5,7 @@ from jaqpotpy.descriptors.molecular import MordredDescriptors
 from jaqpotpy import Jaqpot
 from jaqpotpy.doa.doa import Leverage
 from tdc.benchmark_group import admet_group
-from src.helpers import get_dataset, cross_train
+from src.helpers import get_dataset, cross_train_sklearn
 from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
 import argparse
@@ -46,10 +46,10 @@ if args.run_as == 'single':
     train, valid = group.get_train_valid_split(benchmark = name, split_type = 'default', seed = 42)
 
     # Create the Jaqpot Datasets
-    jaq_train = SmilesDataset(smiles = train['Drug'], y = train['Y'], featurizer = featurizer)
+    jaq_train = SmilesDataset(smiles = train['Drug'], y = train['Y'], featurizer = featurizer, task='classification')
     jaq_train.create()
 
-    jaq_val = SmilesDataset(smiles = valid['Drug'], y = valid['Y'], featurizer = featurizer)
+    jaq_val = SmilesDataset(smiles = valid['Drug'], y = valid['Y'], featurizer = featurizer, task='classification')
     jaq_val.create()
 
     # Update the Evaluator's dataset
@@ -67,17 +67,17 @@ elif args.run_as in ['cross', 'deploy']:
     model = MolecularSKLearn(dummy_train, doa=Leverage(), model=rf, eval=val)
 
     # Cross Validate and check robustness
-    evaluation = cross_train(group, model, name, test)
+    evaluation = cross_train_sklearn(group, model, name, test, 'classification')
     print('\n\nEvaluation of the model:', evaluation)
 
     # Upload on Jaqpot
     if args.run_as == 'deploy':
 
         # Merge train and validation datasets
-        train = SmilesDataset(smiles = train_val['Drug'], y = train_val['Y'], featurizer = featurizer)
+        train = SmilesDataset(smiles = train_val['Drug'], y = train_val['Y'], featurizer = featurizer, task='classification')
         train.create()
 
-        test = SmilesDataset(smiles = test['Drug'], y = test['Y'], featurizer = featurizer)
+        test = SmilesDataset(smiles = test['Drug'], y = test['Y'], featurizer = featurizer, task='classification')
         test.create()
 
         # Update Evaluator's dataset
