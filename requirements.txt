@@ -1,0 +1,16 @@
+jaqpotpy
+torch
+torchvision
+torchaudio
+PyTDC
+skl2onnx
+onnxruntime
+
+# TORCH - GEOMETRIC (KEEP IT LAST)
+-f https://data.pyg.org/whl/torch-1.13.0+cpu.html
+torch-scatter
+torch-sparse
+torch-cluster
+torch-spline-conv
+torch-geometric
+# pyg-lib
