@@ -1,7 +1,7 @@
 from jaqpotpy.models.evaluator import Evaluator
 from jaqpotpy.models import MolecularSKLearn
 from jaqpotpy.datasets import SmilesDataset
-from jaqpotpy.descriptors.molecular import TopologicalFingerprint
+from jaqpotpy.descriptors.molecular import TopologicalFingerprint, MACCSKeysFingerprint
 from jaqpotpy import Jaqpot
 
 from tdc.benchmark_group import admet_group
@@ -20,7 +20,7 @@ import json
 argParser = argparse.ArgumentParser()
 argParser.add_argument("-r", "--run-as", help="""'single' to train the model a single time or \n
                                               'cross' for cross validation of the model or \n
-                                              'deploy' to cross validate the model and upload it on Jaqpotpy""")
+                                              'deploy' to cross validate the model and upload it on Jaqpot""")
 args = argParser.parse_args()
 
 
@@ -39,7 +39,7 @@ voter = VotingRegressor(estimators=[('svm', svm), ('sgd', sgd)], weights=np.arra
 
 
 # Declare the Featurizer and the Evaluator's metrics
-featurizer = TopologicalFingerprint()
+featurizer = MACCSKeysFingerprint()
 
 val = Evaluator()
 val.register_scoring_function('MAE', mean_absolute_error)

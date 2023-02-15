@@ -41,6 +41,7 @@ def cross_train_sklearn(group, model, name, test_df, task='regression'):
         # Keep the predictions
         predictions[name] = trained_model.prediction
         predictions_list.append(predictions)
+        # print(predictions_list)
 
     # Return the cross validation score
     return group.evaluate_many(predictions_list)

@@ -8,6 +8,7 @@ from tdc.benchmark_group import admet_group
 from sklearn.metrics import mean_absolute_error
 from src.helpers import get_dataset, cross_train_sklearn
 from sklearn.ensemble import RandomForestRegressor
+from jaqpotpy.doa.doa import Leverage
 import argparse
 import json
 
@@ -16,13 +17,13 @@ import json
 argParser = argparse.ArgumentParser()
 argParser.add_argument("-r", "--run-as", help="""'single' to train the model a single time or \n
                                               'cross' for cross validation of the model or \n
-                                              'deploy' to cross validate the model and upload it on Jaqpotpy""")
+                                              'deploy' to cross validate the model and upload it on Jaqpot""")
 args = argParser.parse_args()
 
 
 # Get the data using the TDC client
 group = admet_group(path = 'data/')
-benchmark, name = get_dataset('VDss_Lombardo', group)
+benchmark, name = get_dataset('Caco2_Wang', group)
 
 train_val = benchmark['train_val']
 test = benchmark['test']
@@ -56,14 +57,14 @@ if args.run_as == 'single':
     val.dataset = jaq_val
 
     # Train the model
-    model = MolecularSKLearn(jaq_train, doa=None, model=rf, eval=val)
+    model = MolecularSKLearn(jaq_train, doa=Leverage(), model=rf, eval=val)
     _ = model.fit()
 
 elif args.run_as in ['cross', 'deploy']:
 
     # Create a dummy Jaqpot model class
     dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featurizer=featurizer)
-    model = MolecularSKLearn(dummy_train, doa=None, model=rf, eval=val)
+    model = MolecularSKLearn(dummy_train, doa=Leverage(), model=rf, eval=val)
 
     # Cross Validate and check robustness
     evaluation = cross_train_sklearn(group, model, name, test)
@@ -83,7 +84,7 @@ elif args.run_as in ['cross', 'deploy']:
         val.dataset = test
 
         # Train the final model
-        model = MolecularSKLearn(train, doa=None, model=rf, eval=val)
+        model = MolecularSKLearn(train, doa=Leverage(), model=rf, eval=val)
         final_model = model.fit()
 
         # Jaqpot Login

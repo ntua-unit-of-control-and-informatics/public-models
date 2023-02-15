@@ -2,6 +2,7 @@ from jaqpotpy.models.evaluator import Evaluator
 from jaqpotpy.models import MolecularSKLearn
 from jaqpotpy.datasets import SmilesDataset
 from jaqpotpy.descriptors.molecular import TopologicalFingerprint
+from jaqpotpy.doa.doa import Leverage
 from jaqpotpy import Jaqpot
 
 from tdc.benchmark_group import admet_group
@@ -9,6 +10,9 @@ from sklearn.metrics import mean_absolute_error
 from scipy.stats import spearmanr
 from src.helpers import get_dataset, cross_train_sklearn
 from sklearn.svm import SVR
+from sklearn.ensemble import VotingRegressor, ExtraTreesRegressor
+from sklearn.neighbors import KNeighborsRegressor
+import numpy as np
 import argparse
 import json
 
@@ -23,14 +27,18 @@ args = argParser.parse_args()
 
 # Get the data using the TDC client
 group = admet_group(path = 'data/')
-benchmark, name = get_dataset('VDss_Lombardo', group)
+benchmark, name = get_dataset('Clearance_Microsome_AZ', group)
 
 train_val = benchmark['train_val']
 test = benchmark['test']
 
 
 # Declare the model's algorithm
-svm = SVR(C=60, kernel='poly', gamma=0.01)
+svm = SVR(C=80, gamma=0.01, kernel='poly')
+# svm = KNeighborsRegressor(n_neighbors=6)
+# svm = ExtraTreesRegressor(max_depth=7, min_samples_split=6, n_estimators=150,
+#                        random_state=8)
+# voter = VotingRegressor(estimators=[('svm', svm), ('knn', knn)], weights=np.array([0.6, 0.4]))
 
 
 # Declare the Featurizer and the Evaluator's metrics
@@ -58,14 +66,14 @@ if args.run_as == 'single':
     val.dataset = jaq_val
 
     # Train the model
-    model = MolecularSKLearn(jaq_train, doa=None, model=svm, eval=val)
+    model = MolecularSKLearn(jaq_train, doa=Leverage(), model=svm, eval=val)
     _ = model.fit()
 
 elif args.run_as in ['cross', 'deploy']:
 
     # Create a dummy Jaqpot model class
     dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featurizer=featurizer)
-    model = MolecularSKLearn(dummy_train, doa=None, model=svm, eval=val)
+    model = MolecularSKLearn(dummy_train, doa=Leverage(), model=svm, eval=val)
 
     # Cross Validate and check robustness
     evaluation = cross_train_sklearn(group, model, name, test)
@@ -85,7 +93,7 @@ elif args.run_as in ['cross', 'deploy']:
         val.dataset = test
 
         # Train the final model
-        model = MolecularSKLearn(train, doa=None, model=svm, eval=val)
+        model = MolecularSKLearn(train, doa=Leverage(), model=svm, eval=val)
         final_model = model.fit()
 
         # Jaqpot Login
@@ -94,8 +102,8 @@ elif args.run_as in ['cross', 'deploy']:
 
         # Deploy model
         final_model.deploy_on_jaqpot(jaqpot=jaqpot,
-                                     description="ADME model predicting the volume of a drug's distribution at steady state (VDss), which measures the degree of the drug's concentration in body tissue compared to concentration in blood.",
-                                     model_title="VDss Lombardo Model")
+                                     description="ADME model predicting the volume of plasma cleared of a drug over a specified time period, which measures the rate at which the active drug is removed from the body.",
+                                     model_title="Clearance Microsome Model")
 
         # Opening Submission JSON file
         with open('data/submission_results.json', 'r') as openfile:

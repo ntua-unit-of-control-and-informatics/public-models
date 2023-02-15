@@ -1,14 +1,14 @@
 from jaqpotpy.models.evaluator import Evaluator
 from jaqpotpy.models import MolecularSKLearn
 from jaqpotpy.datasets import SmilesDataset
-from jaqpotpy.descriptors.molecular import TopologicalFingerprint
+from jaqpotpy.descriptors.molecular import MACCSKeysFingerprint
 from jaqpotpy import Jaqpot
-
+from jaqpotpy.doa.doa import Leverage
 from tdc.benchmark_group import admet_group
-from sklearn.metrics import mean_absolute_error
-from scipy.stats import spearmanr
 from src.helpers import get_dataset, cross_train_sklearn
-from sklearn.svm import SVR
+from sklearn.metrics import accuracy_score, average_precision_score
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.linear_model import LogisticRegression
 import argparse
 import json
 
@@ -23,22 +23,21 @@ args = argParser.parse_args()
 
 # Get the data using the TDC client
 group = admet_group(path = 'data/')
-benchmark, name = get_dataset('VDss_Lombardo', group)
+benchmark, name = get_dataset('CYP2D6_Substrate_CarbonMangels', group)
 
 train_val = benchmark['train_val']
 test = benchmark['test']
 
 
 # Declare the model's algorithm
-svm = SVR(C=60, kernel='poly', gamma=0.01)
-
+rf = LogisticRegression(C=20, penalty='elasticnet', solver='saga', l1_ratio=0.2, random_state=0)
 
 # Declare the Featurizer and the Evaluator's metrics
-featurizer = TopologicalFingerprint()
+featurizer = MACCSKeysFingerprint()
 
 val = Evaluator()
-val.register_scoring_function('MAE', mean_absolute_error)
-val.register_scoring_function('SPM', spearmanr)
+val.register_scoring_function('ACC', accuracy_score)
+val.register_scoring_function('AUPRC', average_precision_score)
 
 
 # Train model once in order to find the best algorithm and optimize it
@@ -48,44 +47,45 @@ if args.run_as == 'single':
     train, valid = group.get_train_valid_split(benchmark = name, split_type = 'default', seed = 42)
 
     # Create the Jaqpot Datasets
-    jaq_train = SmilesDataset(smiles = train['Drug'], y = train['Y'], featurizer = featurizer)
+    jaq_train = SmilesDataset(smiles = train['Drug'], y = train['Y'], featurizer = featurizer, task='classification')
     jaq_train.create()
 
-    jaq_val = SmilesDataset(smiles = valid['Drug'], y = valid['Y'], featurizer = featurizer)
+    jaq_val = SmilesDataset(smiles = valid['Drug'], y = valid['Y'], featurizer = featurizer, task='classification')
     jaq_val.create()
 
     # Update the Evaluator's dataset
     val.dataset = jaq_val
 
     # Train the model
-    model = MolecularSKLearn(jaq_train, doa=None, model=svm, eval=val)
+    model = MolecularSKLearn(jaq_train, doa=Leverage(), model=rf, eval=val)
     _ = model.fit()
+
 
 elif args.run_as in ['cross', 'deploy']:
 
     # Create a dummy Jaqpot model class
     dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featurizer=featurizer)
-    model = MolecularSKLearn(dummy_train, doa=None, model=svm, eval=val)
+    model = MolecularSKLearn(dummy_train, doa=Leverage(), model=rf, eval=val)
 
     # Cross Validate and check robustness
-    evaluation = cross_train_sklearn(group, model, name, test)
+    evaluation = cross_train_sklearn(group, model, name, test, 'classification')
     print('\n\nEvaluation of the model:', evaluation)
 
     # Upload on Jaqpot
     if args.run_as == 'deploy':
 
         # Merge train and validation datasets
-        train = SmilesDataset(smiles = train_val['Drug'], y = train_val['Y'], featurizer = featurizer)
+        train = SmilesDataset(smiles = train_val['Drug'], y = train_val['Y'], featurizer = featurizer, task='classification')
         train.create()
 
-        test = SmilesDataset(smiles = test['Drug'], y = test['Y'], featurizer = featurizer)
+        test = SmilesDataset(smiles = test['Drug'], y = test['Y'], featurizer = featurizer, task='classification')
         test.create()
 
         # Update Evaluator's dataset
         val.dataset = test
 
         # Train the final model
-        model = MolecularSKLearn(train, doa=None, model=svm, eval=val)
+        model = MolecularSKLearn(train, doa=Leverage(), model=rf, eval=val)
         final_model = model.fit()
 
         # Jaqpot Login
@@ -94,8 +94,8 @@ elif args.run_as in ['cross', 'deploy']:
 
         # Deploy model
         final_model.deploy_on_jaqpot(jaqpot=jaqpot,
-                                     description="ADME model predicting the volume of a drug's distribution at steady state (VDss), which measures the degree of the drug's concentration in body tissue compared to concentration in blood.",
-                                     model_title="VDss Lombardo Model")
+                                     description="Tox model predicting the Drug-Induced Liver Injury (DILI), a fatal liver disease caused by drugs, which has been the single most frequent cause of safety-related drug marketing withdrawals for the past 50 years.",
+                                     model_title="DILI Model")
 
         # Opening Submission JSON file
         with open('data/submission_results.json', 'r') as openfile:
