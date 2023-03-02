@@ -8,7 +8,7 @@ from jaqpotpy.doa.doa import SmilesLeverage
 
 
 from tdc.benchmark_group import admet_group
-from sklearn.metrics import average_precision_score, accuracy_score, roc_auc_score
+from sklearn.metrics import average_precision_score, accuracy_score, roc_auc_score, mean_absolute_error
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, VotingClassifier
 import numpy as np
 from src.helpers import get_dataset, cross_train_torch
@@ -27,17 +27,18 @@ args = argParser.parse_args()
 
 # Get the data using the TDC client
 group = admet_group(path='data/')
-benchmark, name = get_dataset('CYP2D6_Substrate_CarbonMangels', group)
+benchmark, name = get_dataset('AMES', group)
 
 train_val = benchmark['train_val']
 test = benchmark['test']
 
 
 # Declare the model's algorithm
-nn = AttentiveFP(in_channels=39, hidden_channels=50, out_channels=2, edge_dim=10, num_layers=2,
-                    num_timesteps=3).jittable()
-optimizer = torch.optim.Adam(nn.parameters(), lr=0.01, weight_decay=5e-4)
+nn = AttentiveFP(in_channels=39, hidden_channels=80, out_channels=2, edge_dim=10, num_layers=2,
+                    num_timesteps=2).jittable()
+optimizer = torch.optim.Adam(nn.parameters(), lr=0.3, weight_decay=5e-4)
 criterion = torch.nn.CrossEntropyLoss()
+# criterion = torch.nn.L1Loss()
 
 
 # Declare the Featurizer and the Evaluator's metrics
@@ -47,7 +48,7 @@ val = Evaluator()
 val.register_scoring_function('Accuracy', accuracy_score)
 val.register_scoring_function('AUPRC', average_precision_score)
 val.register_scoring_function('AUROC', roc_auc_score)
-
+# val.register_scoring_function('MAE', mean_absolute_error)
 
 # Train model once in order to find the best algorithm and optimize it
 if args.run_as == 'single':
@@ -56,10 +57,10 @@ if args.run_as == 'single':
     train, valid = group.get_train_valid_split(benchmark=name, split_type='default', seed=42)
 
     # Create the Jaqpot Datasets
-    jaq_train = TorchGraphDataset(smiles=train['Drug'], y=train['Y'], task='classification', featurizer=featurizer)
+    jaq_train = TorchGraphDataset(smiles=train['Drug'], y=train['Y'], task='regression', featurizer=featurizer)
     jaq_train.create()
 
-    jaq_val = TorchGraphDataset(smiles=valid['Drug'], y=valid['Y'], task='classification', featurizer=featurizer)
+    jaq_val = TorchGraphDataset(smiles=valid['Drug'], y=valid['Y'], task='regression', featurizer=featurizer)
     jaq_val.create()
 
     # Update the Evaluator's dataset
@@ -69,17 +70,17 @@ if args.run_as == 'single':
     model = MolecularTorchGeometric(dataset=jaq_train
                             , model_nn=nn, eval=val, doa=None
                             , train_batch=262, test_batch=200
-                            , epochs=200, optimizer=optimizer, criterion=criterion, device="cpu", test_metric=(average_precision_score, 'maximize'))
+                            , epochs=200, optimizer=optimizer, criterion=criterion, device="cpu", test_metric=(roc_auc_score, 'maximize'))
     model = model.fit()
 
 elif args.run_as in ['cross', 'deploy']:
 
     # Create a dummy Jaqpot model class
-    dummy_train = TorchGraphDataset(smiles=train_val['Drug'], y=train_val['Y'], task='classification', featurizer=featurizer)
+    dummy_train = TorchGraphDataset(smiles=train_val['Drug'], y=train_val['Y'], task='regression', featurizer=featurizer)
     model = MolecularTorchGeometric(dataset=dummy_train
                             , model_nn=nn, eval=val, doa=None
                             , train_batch=262, test_batch=200
-                            , epochs=200, optimizer=optimizer, criterion=criterion, device="cpu", test_metric=(average_precision_score, 'maximize'))
+                            , epochs=200, optimizer=optimizer, criterion=criterion, device="cpu", test_metric=(roc_auc_score, 'maximize'))
 
     # Cross Validate and check robustness
     evaluation = cross_train_torch(group, model, name, test, 'classification')
@@ -89,10 +90,10 @@ elif args.run_as in ['cross', 'deploy']:
     if args.run_as == 'deploy':
 
         # Merge train and validation datasets
-        train = TorchGraphDataset(smiles=train_val['Drug'], y=train_val['Y'], task='classification', featurizer=featurizer)
+        train = TorchGraphDataset(smiles=train_val['Drug'], y=train_val['Y'], task='regression', featurizer=featurizer)
         train.create()
 
-        test = TorchGraphDataset(smiles=test['Drug'], y=test['Y'], task='classification', featurizer=featurizer)
+        test = TorchGraphDataset(smiles=test['Drug'], y=test['Y'], task='regression', featurizer=featurizer)
         test.create()
 
         # Update Evaluator's dataset
@@ -102,7 +103,7 @@ elif args.run_as in ['cross', 'deploy']:
         model = MolecularTorchGeometric(dataset=dummy_train
                                         , model_nn=nn, eval=val, doa=None
                                         , train_batch=262, test_batch=200
-                                        , epochs=200, optimizer=optimizer, criterion=criterion, device="cpu", test_metric=(average_precision_score, 'maximize'))
+                                        , epochs=200, optimizer=optimizer, criterion=criterion, device="cpu", test_metric=(roc_auc_score, 'maximize'))
         final_model = model.fit()
 
         molecular_model = final_model.create_molecular_model()

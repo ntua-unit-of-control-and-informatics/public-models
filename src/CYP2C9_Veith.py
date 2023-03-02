@@ -1,13 +1,14 @@
 from jaqpotpy.models.evaluator import Evaluator
 from jaqpotpy.models import MolecularSKLearn
 from jaqpotpy.datasets import SmilesDataset
-from jaqpotpy.descriptors.molecular import TopologicalFingerprint
 from jaqpotpy import Jaqpot
+from jaqpotpy.descriptors.molecular import TopologicalFingerprint
 from jaqpotpy.doa.doa import Leverage
 from tdc.benchmark_group import admet_group
 from src.helpers import get_dataset, cross_train_sklearn
 from sklearn.metrics import accuracy_score, average_precision_score
-from sklearn.naive_bayes import ComplementNB
+from sklearn.naive_bayes import BernoulliNB
+
 import argparse
 import json
 
@@ -22,14 +23,14 @@ args = argParser.parse_args()
 
 # Get the data using the TDC client
 group = admet_group(path = 'data/')
-benchmark, name = get_dataset('CYP2D6_Substrate_CarbonMangels', group)
+benchmark, name = get_dataset('CYP2C9_Veith', group)
 
 train_val = benchmark['train_val']
 test = benchmark['test']
 
 
 # Declare the model's algorithm
-nb = ComplementNB()
+bnb = BernoulliNB()
 
 # Declare the Featurizer and the Evaluator's metrics
 featurizer = TopologicalFingerprint()
@@ -56,7 +57,7 @@ if args.run_as == 'single':
     val.dataset = jaq_val
 
     # Train the model
-    model = MolecularSKLearn(jaq_train, doa=Leverage(), model=nb, eval=val)
+    model = MolecularSKLearn(jaq_train, doa=Leverage(), model=bnb, eval=val)
     _ = model.fit()
 
 
@@ -64,7 +65,7 @@ elif args.run_as in ['cross', 'deploy']:
 
     # Create a dummy Jaqpot model class
     dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featurizer=featurizer)
-    model = MolecularSKLearn(dummy_train, doa=Leverage(), model=nb, eval=val)
+    model = MolecularSKLearn(dummy_train, doa=Leverage(), model=bnb, eval=val)
 
     # Cross Validate and check robustness
     evaluation = cross_train_sklearn(group, model, name, test, 'classification')
@@ -84,7 +85,7 @@ elif args.run_as in ['cross', 'deploy']:
         val.dataset = test
 
         # Train the final model
-        model = MolecularSKLearn(train, doa=Leverage(), model=nb, eval=val)
+        model = MolecularSKLearn(train, doa=Leverage(), model=bnb, eval=val)
         final_model = model.fit()
 
         # Jaqpot Login
@@ -93,8 +94,8 @@ elif args.run_as in ['cross', 'deploy']:
 
         # Deploy model
         final_model.deploy_on_jaqpot(jaqpot=jaqpot,
-                                     description="ADME model predicting if CYP2D6 - a cytochrome primarily expressed in the liver - is a substrate to the enzyme.",
-                                     model_title="CYP2D6 Substrate Model")
+                                     description="ADME model predicting the CYP2C9 (which play a major role in the oxidation of both xenobiotic and endogenous compounds) inhibition",
+                                     model_title="CYP2C9 Inhibition Model")
 
         # Opening Submission JSON file
         with open('data/submission_results.json', 'r') as openfile:

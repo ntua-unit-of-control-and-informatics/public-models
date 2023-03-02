@@ -1,13 +1,14 @@
 from jaqpotpy.models.evaluator import Evaluator
 from jaqpotpy.models import MolecularSKLearn
 from jaqpotpy.datasets import SmilesDataset
-from jaqpotpy.descriptors.molecular import TopologicalFingerprint
+from jaqpotpy.descriptors.molecular import MACCSKeysFingerprint
 from jaqpotpy import Jaqpot
 from jaqpotpy.doa.doa import Leverage
 from tdc.benchmark_group import admet_group
 from src.helpers import get_dataset, cross_train_sklearn
-from sklearn.metrics import accuracy_score, average_precision_score
-from sklearn.naive_bayes import ComplementNB
+from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.linear_model import LogisticRegression
+
 import argparse
 import json
 
@@ -22,21 +23,21 @@ args = argParser.parse_args()
 
 # Get the data using the TDC client
 group = admet_group(path = 'data/')
-benchmark, name = get_dataset('CYP2D6_Substrate_CarbonMangels', group)
+benchmark, name = get_dataset('HIA_Hou', group)
 
 train_val = benchmark['train_val']
 test = benchmark['test']
 
 
 # Declare the model's algorithm
-nb = ComplementNB()
+lr = LogisticRegression(C=50, penalty='elasticnet', solver='saga', l1_ratio=0.5, random_state=42)
 
 # Declare the Featurizer and the Evaluator's metrics
-featurizer = TopologicalFingerprint()
+featurizer = MACCSKeysFingerprint()
 
 val = Evaluator()
 val.register_scoring_function('ACC', accuracy_score)
-val.register_scoring_function('AUPRC', average_precision_score)
+val.register_scoring_function('AUC', roc_auc_score)
 
 
 # Train model once in order to find the best algorithm and optimize it
@@ -56,7 +57,7 @@ if args.run_as == 'single':
     val.dataset = jaq_val
 
     # Train the model
-    model = MolecularSKLearn(jaq_train, doa=Leverage(), model=nb, eval=val)
+    model = MolecularSKLearn(jaq_train, doa=Leverage(), model=lr, eval=val)
     _ = model.fit()
 
 
@@ -64,7 +65,7 @@ elif args.run_as in ['cross', 'deploy']:
 
     # Create a dummy Jaqpot model class
     dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featurizer=featurizer)
-    model = MolecularSKLearn(dummy_train, doa=Leverage(), model=nb, eval=val)
+    model = MolecularSKLearn(dummy_train, doa=Leverage(), model=lr, eval=val)
 
     # Cross Validate and check robustness
     evaluation = cross_train_sklearn(group, model, name, test, 'classification')
@@ -84,7 +85,7 @@ elif args.run_as in ['cross', 'deploy']:
         val.dataset = test
 
         # Train the final model
-        model = MolecularSKLearn(train, doa=Leverage(), model=nb, eval=val)
+        model = MolecularSKLearn(train, doa=Leverage(), model=lr, eval=val)
         final_model = model.fit()
 
         # Jaqpot Login
@@ -93,8 +94,8 @@ elif args.run_as in ['cross', 'deploy']:
 
         # Deploy model
         final_model.deploy_on_jaqpot(jaqpot=jaqpot,
-                                     description="ADME model predicting if CYP2D6 - a cytochrome primarily expressed in the liver - is a substrate to the enzyme.",
-                                     model_title="CYP2D6 Substrate Model")
+                                     description="ADME model predicting Human Intestinal Absorption (HIA), which is the ability of the absorption of a drug from the human gastrointestinal system into the bloodstream of the human body.",
+                                     model_title="HIA Model")
 
         # Opening Submission JSON file
         with open('data/submission_results.json', 'r') as openfile:
