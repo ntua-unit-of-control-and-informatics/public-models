@@ -17,7 +17,8 @@ import json
 argParser = argparse.ArgumentParser()
 argParser.add_argument("-r", "--run-as", help="""'single' to train the model a single time or \n
                                               'cross' for cross validation of the model or \n
-                                              'deploy' to cross validate the model and upload it on Jaqpot""")
+                                              'deploy' to cross validate the model and upload it on Jaqpot or \n
+                                              'save' to save the model to a local file""")
 args = argParser.parse_args()
 
 
@@ -60,8 +61,7 @@ if args.run_as == 'single':
     model = MolecularSKLearn(jaq_train, doa=Leverage(), model=svm, eval=val)
     _ = model.fit()
 
-
-elif args.run_as in ['cross', 'deploy']:
+elif args.run_as in ['cross', 'deploy', 'save']:
 
     # Create a dummy Jaqpot model class
     dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featurizer=featurizer)
@@ -72,7 +72,7 @@ elif args.run_as in ['cross', 'deploy']:
     print('\n\nEvaluation of the model:', evaluation)
 
     # Upload on Jaqpot
-    if args.run_as == 'deploy':
+    if args.run_as == 'deploy' or args.run_as == 'save':
 
         # Merge train and validation datasets
         train = SmilesDataset(smiles = train_val['Drug'], y = train_val['Y'], featurizer = featurizer, task='classification')
@@ -88,23 +88,33 @@ elif args.run_as in ['cross', 'deploy']:
         model = MolecularSKLearn(train, doa=Leverage(), model=svm, eval=val)
         final_model = model.fit()
 
-        # Jaqpot Login
-        jaqpot = Jaqpot()
-        jaqpot.request_key_safe()
+        if args.run_as == 'deploy':
 
-        # Deploy model
-        final_model.deploy_on_jaqpot(jaqpot=jaqpot,
-                                     description="Tox model the result of an AMES experiment. The Ames test is a short-term bacterial reverse mutation assay detecting a large number of compounds which can induce genetic damage and frameshift mutations.",
-                                     model_title="AMES Model")
+            # Jaqpot Login
+            jaqpot = Jaqpot()
+            jaqpot.request_key_safe()
 
-        # Opening Submission JSON file
-        with open('data/submission_results.json', 'r') as openfile:
-            # Reading from json file
-            submission = json.load(openfile)
+            # Deploy model
+            final_model.deploy_on_jaqpot(jaqpot=jaqpot,
+                                         description="Tox model the result of an AMES experiment. The Ames test is a short-term bacterial reverse mutation assay detecting a large number of compounds which can induce genetic damage and frameshift mutations.",
+                                         model_title="AMES Model")
 
-        submission[name] = evaluation[name]
-        with open("data/submission_results.json", "w") as outfile:
-            json.dump(submission, outfile)
+            # Opening Submission JSON file
+            with open('data/submission_results.json', 'r') as openfile:
+                # Reading from json file
+                submission = json.load(openfile)
+
+            submission[name] = evaluation[name]
+            with open("data/submission_results.json", "w") as outfile:
+                json.dump(submission, outfile)
+
+        elif args.run_as == 'save':
+
+            print("Saving model to AMES.jmodel")
+            final_model.model_name = "AMES"
+            final_model.model_title = "AMES"  # title is used as the base of the filename
+            final_model.save()
+
 
 else:
-    raise ValueError(f'Argument {args.run_as} is not acceptable. Users must provide either "single" or "cross" or "deploy"')
+    raise ValueError(f'Argument {args.run_as} is not acceptable. Users must provide either "single" or "cross" or "deploy" or "save"')
