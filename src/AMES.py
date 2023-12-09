@@ -21,16 +21,16 @@ argParser.add_argument("-r", "--run-as", help="""'single' to train the model a s
                                               'save' to save the model to a local file""")
 args = argParser.parse_args()
 
-
+NAME = 'AMES'
 # Get the data using the TDC client
 group = admet_group(path = 'data/')
-benchmark, name = get_dataset('AMES', group)
+benchmark, name = get_dataset(NAME, group)
 
 train_val = benchmark['train_val']
 test = benchmark['test']
 
 # Declare the model's algorithm
-svm = SVC(C=40, kernel='rbf',gamma=0.05, random_state=42)
+svm = SVC(C=40, kernel='rbf', gamma=0.05, random_state=42)
 
 
 # Declare the Featurizer and the Evaluator's metrics
@@ -110,11 +110,10 @@ elif args.run_as in ['cross', 'deploy', 'save']:
 
         elif args.run_as == 'save':
 
-            print("Saving model to AMES.jmodel")
-            final_model.model_name = "AMES"
-            final_model.model_title = "AMES"  # title is used as the base of the filename
+            print("Saving model to {}.jmodel".format(NAME))
+            final_model.model_name = NAME
+            final_model.model_title = NAME  # title is used as the base of the filename
             final_model.save()
-
 
 else:
     raise ValueError(f'Argument {args.run_as} is not acceptable. Users must provide either "single" or "cross" or "deploy" or "save"')
