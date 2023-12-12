@@ -111,7 +111,7 @@ elif args.run_as in ['cross', 'deploy', 'save']:
         elif args.run_as == 'save':
 
             print("Saving model to {}.jmodel".format(NAME))
-            final_model.model_name = NAMEz
+            final_model.model_name = NAME
             final_model.model_title = NAME  # title is used as the base of the filename
             final_model.save()
 
