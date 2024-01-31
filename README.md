@@ -46,7 +46,7 @@ Codes:
 
 Create a virtualenv in which to run the code.
 
-```yaml
+```commandline
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -54,13 +54,12 @@ pip install -r requirements.txt
 
 # To run
 
-Run in the terminal the command:
+To build the models you need to be in the src directory and then run like this:
 
-python3 src/filename.py -r <run_as>
+python3 filename.py -r <run_as>
 
-The run_as must be one of the following:
+The run_as must be one of the following and cannot be omitted:
  - single (to train the model a single time)
  - cross (for cross validation of the model)
  - deploy (to cross validate the model and upload it on Jaqpot)
- 
- and cannot be ommitted.
+ - save (save the model to a local file)
