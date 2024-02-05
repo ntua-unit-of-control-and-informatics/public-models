@@ -24,10 +24,6 @@ argParser.add_argument("-s", "--scoring-functions",
                        nargs="+",
                        choices=["MAE", "ACC", "AUC"],
                        help="Scoring functions to use in the Evaluator")
-argParser.add_argument("-t", "--task",
-                       required=True,
-                       choices=["regression", "classification"],
-                       help="regression or classification model")
 argParser.add_argument("-n", "--n-neighbours", type=int, default=3, help="Num neighbours")
 
 args = argParser.parse_args()
@@ -52,5 +48,5 @@ dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featuriz
 model = MolecularSKLearn(dummy_train, doa=Leverage(), model=knn, eval=val)
 
 # Cross Validate and check robustness
-evaluation = cross_train_sklearn(group, model, name, test, task=args.task)
+evaluation = cross_train_sklearn(group, model, name, test, task="classification")
 print('\n\nEvaluation of the model:', evaluation)

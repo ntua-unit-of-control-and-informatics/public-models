@@ -11,7 +11,7 @@ from src.helpers import create_featurizer
 from src.helpers import create_evaluator
 
 # Example usage:
-#   python x_rf.py -d Caco2_Wang -f mordred --max-depth 9
+#   python x_rf.py -d Caco2_Wang -f mordred --max-depth 9 --task regression
 
 # Argument to control the execution of the code
 argParser = argparse.ArgumentParser()
@@ -24,6 +24,10 @@ argParser.add_argument("--n-estimators", type=int, default=200, help="Num RF est
 argParser.add_argument("--min-samples-split", type=int, default=5, help="Min RF samples split")
 argParser.add_argument("--max-depth", type=int, default=9, help="Max RF depth")
 argParser.add_argument("--random-state", type=int, default=8, help="RF random state")
+argParser.add_argument("-t", "--task",
+                       required=True,
+                       choices=["regression", "classification"],
+                       help="regression or classification model")
 
 args = argParser.parse_args()
 
@@ -46,11 +50,11 @@ featurizer = create_featurizer(args.featurizer)
 val = create_evaluator(["MAE"])
 
 # Create a dummy Jaqpot model class
-dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featurizer=featurizer)
+dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featurizer=featurizer, task=args.task)
 model = MolecularSKLearn(dummy_train, doa=Leverage(), model=rf, eval=val)
 
 # Cross Validate and check robustness
-evaluation = cross_train_sklearn(group, model, name, test, task="regression")
+evaluation = cross_train_sklearn(group, model, name, test, task=args.task)
 print('\n\nEvaluation of the model:', evaluation)
-dir(model)
+
 
