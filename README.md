@@ -5,30 +5,30 @@ The training datasets can be found at [Therepeutic Data Commons](https://tdcommo
 
 These models are currently buildable using the scripts in the `src` directory (NOTE: the scripts must be run from within that directory):
 
-| Prediction                | Training data                                                                                                                | Model Type   | Descriptors |
-|---------------------------|------------------------------------------------------------------------------------------------------------------------------|--------------|-------------|
-| AMES                      | [4 papers](https://tdcommons.ai/single_pred_tasks/tox/#ames-mutagenicity)                                                    | SVC          | Topo        |
-| BBB                       | [Martins et al.](https://tdcommons.ai/single_pred_tasks/adme/#bbb-blood-brain-barrier-martins-et-al)                         | KNN          | Mordred     |
-| Bioavailability           | [Ma et al.](https://tdcommons.ai/single_pred_tasks/adme/#bioavailability-ma-et-al)                                           | KNN          | MACCS       |
-| Caco2                     | [Wang et al.](https://tdcommons.ai/single_pred_tasks/adme/#caco-2-cell-effective-permeability-wang-et-al)                    | RF           | Mordred     |
-| Hepatocyte Clearance      | [AZ](https://tdcommons.ai/single_pred_tasks/adme/#clearance-astrazeneca)                                                     | SVR          | MACCS       |
-| Microsomal clearance      | [AZ](https://tdcommons.ai/single_pred_tasks/adme/#clearance-astrazeneca)                                                     | SVR          | Topo        |
-| CYP2C9                    | [Carbon-Mangels et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp2c9-substrate-carbon-mangels-et-al)                  | BernoulliNB  | MACCS       |
-| CYP2C9                    | [Veith et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp-p450-2c9-inhibition-veith-et-al)                             | BernoulliNB  | Topo        |
-| CYP2D6                    | [Carbon-Mangels et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp2d6-substrate-carbon-mangels-et-al)                  | ComplementNB | Topo        | 
-| CYP2D6                    | [Veith et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp-p450-2d6-inhibition-veith-et-al)                             | BernoulliNB  | Topo        |
-| CYP3A4                    | [Carbon-Mangels et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp3a4-substrate-carbon-mangels-et-al)                  | ExtraTrees   | RDKit       |
-| CYP3A4                    | [Veith et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp-p450-3a4-inhibition-veith-et-al)                             | SVC          | Topo        | 
-| DILI                      | [US FDA](https://tdcommons.ai/single_pred_tasks/tox/#dili-drug-induced-liver-injury)                                         | RF           | Mordred     |
-| Half life                 | [Obach et al.](https://tdcommons.ai/single_pred_tasks/adme/#half-life-obach-et-al)                                           | SVR          | Topo        |
-| hERG                      | [648 drugs](https://tdcommons.ai/single_pred_tasks/tox/#herg-blockers)                                                       | SVC          | MACCS       |
-| HIA                       | [Hou et al.](https://tdcommons.ai/single_pred_tasks/adme/#hia-human-intestinal-absorption-hou-et-al)                         | LR           | MACCS       |
-| Accute toxicity LD50      | [Zhu et al.](https://tdcommons.ai/single_pred_tasks/tox/#acute-toxicity-ld50)                                                | RF           | MACCS       |
-| Lipophilicity             | [AZ](https://tdcommons.ai/single_pred_tasks/adme/#lipophilicity-astrazeneca)                                                 | SVR          | Topo        |
-| P-glycoprotein Inhibition | [Broccatelli et al.](https://tdcommons.ai/single_pred_tasks/adme/#pgp-p-glycoprotein-inhibition-broccatelli-et-al)           | RF           | MACCS       |
-| Plasma Protein Binding    | [AZ](https://tdcommons.ai/single_pred_tasks/adme/#ppbr-plasma-protein-binding-rate-astrazeneca)                              | RF           | MACCS       |
-| Solubility                | [9982 drugs](https://tdcommons.ai/single_pred_tasks/adme/#solubility-aqsoldb)                                                | SVR          | MACCS       |
-| VDss                      | [Lombardo et al.](https://tdcommons.ai/single_pred_tasks/adme/#vdss-volumn-of-distribution-at-steady-state-lombardo-et-al)   | SVR          | Topo        |
+| Prediction                | Training data                                                                                                                | Model Type       | Descriptors |
+|---------------------------|------------------------------------------------------------------------------------------------------------------------------|------------------|-------------|
+| AMES                      | [4 papers](https://tdcommons.ai/single_pred_tasks/tox/#ames-mutagenicity)                                                    | SVC (C)          | Topo        |
+| BBB                       | [Martins et al.](https://tdcommons.ai/single_pred_tasks/adme/#bbb-blood-brain-barrier-martins-et-al)                         | KNN (C)          | Mordred     |
+| Bioavailability           | [Ma et al.](https://tdcommons.ai/single_pred_tasks/adme/#bioavailability-ma-et-al)                                           | KNN (C)          | MACCS       |
+| Caco2                     | [Wang et al.](https://tdcommons.ai/single_pred_tasks/adme/#caco-2-cell-effective-permeability-wang-et-al)                    | RF (R)           | Mordred     |
+| Hepatocyte Clearance      | [AZ](https://tdcommons.ai/single_pred_tasks/adme/#clearance-astrazeneca)                                                     | SVR (R)          | MACCS       |
+| Microsomal clearance      | [AZ](https://tdcommons.ai/single_pred_tasks/adme/#clearance-astrazeneca)                                                     | SVR (R)          | Topo        |
+| CYP2C9                    | [Carbon-Mangels et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp2c9-substrate-carbon-mangels-et-al)                  | BernoulliNB (C)  | MACCS       |
+| CYP2C9                    | [Veith et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp-p450-2c9-inhibition-veith-et-al)                             | BernoulliNB (C)  | Topo        |
+| CYP2D6                    | [Carbon-Mangels et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp2d6-substrate-carbon-mangels-et-al)                  | ComplementNB (C) | Topo        | 
+| CYP2D6                    | [Veith et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp-p450-2d6-inhibition-veith-et-al)                             | BernoulliNB (C)  | Topo        |
+| CYP3A4                    | [Carbon-Mangels et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp3a4-substrate-carbon-mangels-et-al)                  | ExtraTrees (C)   | RDKit       |
+| CYP3A4                    | [Veith et al.](https://tdcommons.ai/single_pred_tasks/adme/#cyp-p450-3a4-inhibition-veith-et-al)                             | SVC (C)          | Topo        | 
+| DILI                      | [US FDA](https://tdcommons.ai/single_pred_tasks/tox/#dili-drug-induced-liver-injury)                                         | RF (C)           | Mordred     |
+| Half life                 | [Obach et al.](https://tdcommons.ai/single_pred_tasks/adme/#half-life-obach-et-al)                                           | SVR (R)          | Topo        |
+| hERG                      | [648 drugs](https://tdcommons.ai/single_pred_tasks/tox/#herg-blockers)                                                       | SVC (C)          | MACCS       |
+| HIA                       | [Hou et al.](https://tdcommons.ai/single_pred_tasks/adme/#hia-human-intestinal-absorption-hou-et-al)                         | LR (C)           | MACCS       |
+| Accute toxicity LD50      | [Zhu et al.](https://tdcommons.ai/single_pred_tasks/tox/#acute-toxicity-ld50)                                                | RF (R)           | MACCS       |
+| Lipophilicity             | [AZ](https://tdcommons.ai/single_pred_tasks/adme/#lipophilicity-astrazeneca)                                                 | SVR (R)          | Topo        |
+| P-glycoprotein Inhibition | [Broccatelli et al.](https://tdcommons.ai/single_pred_tasks/adme/#pgp-p-glycoprotein-inhibition-broccatelli-et-al)           | RF (C)           | MACCS       |
+| Plasma Protein Binding    | [AZ](https://tdcommons.ai/single_pred_tasks/adme/#ppbr-plasma-protein-binding-rate-astrazeneca)                              | RF (R)           | MACCS       |
+| Solubility                | [9982 drugs](https://tdcommons.ai/single_pred_tasks/adme/#solubility-aqsoldb)                                                | SVR (R)          | MACCS       |
+| VDss                      | [Lombardo et al.](https://tdcommons.ai/single_pred_tasks/adme/#vdss-volumn-of-distribution-at-steady-state-lombardo-et-al)   | SVR (R)          | Topo        |
 
 Codes:
 * BBB - Blood-Brain Barrier
@@ -41,6 +41,7 @@ Codes:
 * RF - Random Forest
 * Topo - topological fingerprints
 * VDss - Volume of Distribution at steady state
+* Codes for model type (C)=classification, (R)=Regression 
 
 # Setup
 
