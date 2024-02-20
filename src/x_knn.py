@@ -1,52 +1,36 @@
-from jaqpotpy.models import MolecularSKLearn
-from jaqpotpy.datasets import SmilesDataset
-
 from tdc.benchmark_group import admet_group
-from src.helpers import get_dataset, cross_train_sklearn
-from sklearn.neighbors import KNeighborsClassifier
-from jaqpotpy.doa.doa import Leverage
-import argparse
 
-from src.helpers import create_featurizer
+from sklearn.neighbors import KNeighborsClassifier
+
+from src.helpers import create_featurizers
 from src.helpers import create_evaluator
+from src.helpers import create_doa
+from src.helpers import create_common_args
+from src.helpers import Runner
 
 # Example:
 #   python x_knn.py -d BBB_Martins -f mordred -s ACC AUC --n-neighbours 3
 
 # Argument to control the execution of the code
-argParser = argparse.ArgumentParser()
-argParser.add_argument("-d", "--data", required=True, help="Training data")
-argParser.add_argument("-f", "--featurizer",
-                       required=True,
-                       choices=["mordred", "maccs", "topo"],
-                       help="Molecular feature generator to use")
-argParser.add_argument("-s", "--scoring-functions",
-                       nargs="+",
-                       choices=["MAE", "ACC", "AUC"],
-                       help="Scoring functions to use in the Evaluator")
-argParser.add_argument("-n", "--n-neighbours", type=int, default=3, help="Num neighbours")
+argParser = create_common_args()
+argParser.add_argument("-n", "--n-neighbours", nargs="+",
+                       type=int, default=[3], help="Num neighbours")
 
 args = argParser.parse_args()
 
-# Get the data using the TDC client
-group = admet_group(path='data/')
-benchmark, name = get_dataset(args.data, group)
+doa = create_doa(args.doa)
 
-train_val = benchmark['train_val']
-test = benchmark['test']
-
-# Declare the model's algorithm
-knn = KNeighborsClassifier(n_neighbors=3)
+# Declare the different variants of the model's algorithm
+models = {}
+for n in args.n_neighbours:
+    model = KNeighborsClassifier(n_neighbors=n)
+    key = "n_neighbours={}".format(str(n))
+    models[key] = model
+    print("added model", key)
 
 # create the Featurizer and the Evaluator's metrics
-featurizer = create_featurizer(args.featurizer)
-
+featurizers = create_featurizers(args.featurizers)
 val = create_evaluator(args.scoring_functions)
 
-# Create a dummy Jaqpot model class
-dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featurizer=featurizer)
-model = MolecularSKLearn(dummy_train, doa=Leverage(), model=knn, eval=val)
-
-# Cross Validate and check robustness
-evaluation = cross_train_sklearn(group, model, name, test, task="classification")
-print('\n\nEvaluation of the model:', evaluation)
+runner = Runner(args.data, models, doa, val, featurizers, "classification")
+results = runner.run_cross_validation()

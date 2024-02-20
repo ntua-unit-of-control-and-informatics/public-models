@@ -1,28 +1,20 @@
-from jaqpotpy.models import MolecularSKLearn
-from jaqpotpy.datasets import SmilesDataset
-
 from tdc.benchmark_group import admet_group
-from src.helpers import get_dataset, cross_train_sklearn
 from sklearn.ensemble import RandomForestRegressor
-from jaqpotpy.doa.doa import Leverage
-import argparse
 
-from src.helpers import create_featurizer
+from src.helpers import create_featurizers
 from src.helpers import create_evaluator
+from src.helpers import create_doa
+from src.helpers import create_common_args
+from src.helpers import Runner
 
 # Example usage:
-#   python x_rf.py -d Caco2_Wang -f mordred --max-depth 9 --task regression
+#   python x_rf.py -d Caco2_Wang -f mordred --max-depth 9 -s MAE --task regression
 
 # Argument to control the execution of the code
-argParser = argparse.ArgumentParser()
-argParser.add_argument("-d", "--data", required=True, help="Training data")
-argParser.add_argument("-f", "--featurizer",
-                       required=True,
-                       choices=["mordred", "maccs", "topo"],
-                       help="Molecular feature generator to use")
-argParser.add_argument("--n-estimators", type=int, default=200, help="Num RF estimators")
-argParser.add_argument("--min-samples-split", type=int, default=5, help="Min RF samples split")
-argParser.add_argument("--max-depth", type=int, default=9, help="Max RF depth")
+argParser = create_common_args()
+argParser.add_argument("--n-estimators", nargs="+", type=int, default=[200], help="Num RF estimators")
+argParser.add_argument("--min-samples-split", nargs="+", type=int, default=[5], help="Min RF samples split")
+argParser.add_argument("--max-depth", nargs="+", type=int, default=[9], help="Max RF depth")
 argParser.add_argument("--random-state", type=int, default=8, help="RF random state")
 argParser.add_argument("-t", "--task",
                        required=True,
@@ -31,30 +23,25 @@ argParser.add_argument("-t", "--task",
 
 args = argParser.parse_args()
 
-# Get the data using the TDC client
-group = admet_group(path='data/')
-benchmark, name = get_dataset(args.data, group)
+doa = create_doa(args.doa)
 
-train_val = benchmark['train_val']
-test = benchmark['test']
-
-# Declare the model's algorithm
-rf = RandomForestRegressor(n_estimators=args.n_estimators,
-                           min_samples_split=args.min_samples_split,
-                           max_depth=args.max_depth,
-                           random_state=args.random_state)
+# Declare the different variants of the model's algorithm
+models = {}
+for e in args.n_estimators:
+    for s in args.min_samples_split:
+        for d in args.max_depth:
+            model = RandomForestRegressor(n_estimators=e,
+                                          min_samples_split=s,
+                                          max_depth=d,
+                                          random_state=args.random_state)
+            key = "n_estimators={}, min_samples_split={}, max_depth={}".format(str(e), str(s), str(d))
+            models[key] = model
+            print("added model", key)
 
 # create the Featurizer and the Evaluator's metrics
-featurizer = create_featurizer(args.featurizer)
+featurizers = create_featurizers(args.featurizers)
+val = create_evaluator(args.scoring_functions)
 
-val = create_evaluator(["MAE"])
-
-# Create a dummy Jaqpot model class
-dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featurizer=featurizer, task=args.task)
-model = MolecularSKLearn(dummy_train, doa=Leverage(), model=rf, eval=val)
-
-# Cross Validate and check robustness
-evaluation = cross_train_sklearn(group, model, name, test, task=args.task)
-print('\n\nEvaluation of the model:', evaluation)
-
+runner = Runner(args.data, models, doa, val, featurizers, args.task)
+results = runner.run_cross_validation()
 

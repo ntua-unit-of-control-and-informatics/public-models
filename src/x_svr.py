@@ -1,16 +1,11 @@
-import argparse
-import time
-
-from jaqpotpy.models import MolecularSKLearn
-from jaqpotpy.datasets import SmilesDataset
-
 from tdc.benchmark_group import admet_group
-from src.helpers import get_dataset, cross_train_sklearn
 from sklearn.svm import SVR
-from jaqpotpy.doa.doa import Leverage
 
-from src.helpers import create_featurizer
+from src.helpers import create_featurizers
 from src.helpers import create_evaluator
+from src.helpers import create_doa
+from src.helpers import create_common_args
+from src.helpers import Runner
 
 # Examples:
 #   python x_svr.py -d Clearance_Microsome_AZ -f topo -s MAE SPM -c 80 -k poly -g 0.01
@@ -21,29 +16,19 @@ from src.helpers import create_evaluator
 # Handling half life and clearance hepatocyte needs more work as those use a voting classifier
 
 # Argument to control the execution of the code
-argParser = argparse.ArgumentParser()
-argParser.add_argument("-d", "--data", required=True, help="Training data")
-argParser.add_argument("-f", "--featurizer",
-                       required=True,
-                       choices=["mordred", "maccs", "topo"],
-                       help="Molecular feature generator to use")
-argParser.add_argument("-s", "--scoring-functions",
-                       nargs="+",
-                       choices=["MAE", "ACC", "AUC", "AUPRC", "SPM"],
-                       help="Scoring functions to use in the Evaluator")
+argParser = create_common_args()
 argParser.add_argument("-c", "--c",
                        type=float,
-                       required=True,
-                       help="C value")
-argParser.add_argument("-k", "--kernel",
+                       nargs="+",
+                       help="C value(s)")
+argParser.add_argument("-k", "--kernels",
+                       nargs="+",
                        choices=["linear", "poly", "rbf", "sigmoid", "precomputed"],
-                       default="rbf",
-                       help="kernel")
+                       default=["rbf"],
+                       help="kernel(s)")
 argParser.add_argument("-g", "--gamma",
                        default="scale",
                        help="kernel coefficient for rbf, poly and sigmoid. 'scale', 'auto' or a float value")
-argParser.add_argument("--doa",
-                       help="DOA aglorithm (leverage or None)")
 
 args = argParser.parse_args()
 
@@ -54,37 +39,21 @@ if args.gamma == 'scale' or args.gamma == 'auto':
 else:
     gamma = float(args.gamma)
 
-if args.doa is None:
-    doa = None
-elif args.doa.lower() == "leverage":
-    doa = Leverage()
-else:
-    print("invalid value for doa. only leverage is supported. {} was specified".format(args.doa))
-    exit(1)
+doa = create_doa(args.doa)
 
-# Get the data using the TDC client
-group = admet_group(path='data/')
-benchmark, name = get_dataset(args.data, group)
+# Declare the different variants of the model's algorithm
+models = {}
+for c in args.c:
+    for k in args.kernels:
+        model = SVR(C=c, kernel=k, gamma=gamma)
+        key = "C={}, kernel={}".format(str(c), k)
+        models[key] = model
+        print("added model", key)
 
-train_val = benchmark['train_val']
-test = benchmark['test']
-
-t0 = time.time()
-
-# Declare the model's algorithm
-svm = SVR(C=args.c, kernel=args.kernel, gamma=gamma)
 
 # create the Featurizer and the Evaluator's metrics
-featurizer = create_featurizer(args.featurizer)
-
+featurizers = create_featurizers(args.featurizers)
 val = create_evaluator(args.scoring_functions)
 
-# Create a dummy Jaqpot model class
-dummy_train = SmilesDataset(smiles=train_val['Drug'], y=train_val['Y'], featurizer=featurizer, task='regression')
-model = MolecularSKLearn(dummy_train, doa=doa, model=svm, eval=val)
-
-# Cross Validate and check robustness
-evaluation = cross_train_sklearn(group, model, name, test, task="regression")
-t1 = time.time()
-print('\n\nEvaluation of the model:', evaluation)
-print('Execution took {} seconds'.format(round(t1 - t0)))
+runner = Runner(args.data, models, doa, val, featurizers, "regression")
+results = runner.run_cross_validation()
